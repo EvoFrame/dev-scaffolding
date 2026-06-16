@@ -1,0 +1,19 @@
+version: "3"
+
+vars:
+  COMPOSE_DB: .docker/dev-stacks/postgresql/compose.yml
+  COMPOSE_REDIS: .docker/dev-stacks/redis/compose.yml
+  COMPOSE_MONITORING: .docker/dev-stacks/monitoring/compose.yml
+
+tasks:
+  clean-repos:
+    desc: Remove cloned repositories listed in .env (or .env.example fallback)
+    cmd: ./scripts/clean-repos.sh
+    silent: true
+
+  clean-volumes:
+    desc: Remove compose volumes and generated Postgres init SQL
+    cmds:
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_MONITORING}} --profile services --profile ui --profile monitoring down --volumes --remove-orphans
+      - rm -f ./.docker/dev-stacks/postgresql/init/01-init-multiple-dbs.sql
+    silent: true

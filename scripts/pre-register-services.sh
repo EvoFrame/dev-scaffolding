@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ROOT_DIR}/.env"
+if [[ ! -f "${ENV_FILE}" ]]; then
+  ENV_FILE="${ROOT_DIR}/.env.example"
+fi
+
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "No .env or .env.example file found." >&2
+  exit 1
+fi
+
+AUTH_CONTAINER="evoframe-auth-service"
+POSTGRES_CONTAINER="evoframe-postgres"
+
+strip_wrapping_quotes() {
+  local value="$1"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+  printf "%s" "${value}"
+}
+
+get_var() {
+  local key="$1"
+  local value
+  value="$(grep -E "^${key}=" "${ENV_FILE}" | head -n1 | cut -d= -f2- || true)"
+  strip_wrapping_quotes "${value}"
+}
+
+escape_for_sed_replacement() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//&/\\&}"
+  value="${value//|/\\|}"
+  printf "%s" "${value}"
+}
+
+upsert_env_key() {
+  local env_file="$1"
+  local key="$2"
+  local value="$3"
+  local escaped_value
+
+  escaped_value="$(escape_for_sed_replacement "${value}")"
+  if grep -qE "^${key}=" "${env_file}"; then
+    sed -i -E "s|^${key}=.*$|${key}=${escaped_value}|" "${env_file}"
+  else
+    printf "%s=%s\n" "${key}" "${value}" >> "${env_file}"
+  fi
+}
+
+escape_sql_literal() {
+  local value="$1"
+  value="${value//\'/\'\'}"
+  printf "%s" "${value}"
+}
+
+wait_auth_ready() {
+  local auth_host_port="${1}"
+  for _ in $(seq 1 60); do
+    if curl -fsS "http://127.0.0.1:${auth_host_port}/health/ready" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "Auth service readiness check timed out on port ${auth_host_port}." >&2
+  exit 1
+}
+
+if ! docker inspect -f '{{.State.Running}}' "${AUTH_CONTAINER}" >/dev/null 2>&1; then
+  echo "Auth container '${AUTH_CONTAINER}' is not running." >&2
+  exit 1
+fi
+
+if ! docker inspect -f '{{.State.Running}}' "${POSTGRES_CONTAINER}" >/dev/null 2>&1; then
+  echo "Postgres container '${POSTGRES_CONTAINER}' is not running." >&2
+  exit 1
+fi
+
+auth_host_port="$(get_var "AUTH_SERVICE_HOST_PORT")"
+if [[ -z "${auth_host_port}" ]]; then
+  auth_host_port="8081"
+fi
+
+wait_auth_ready "${auth_host_port}"
+
+postgres_user="$(get_var "POSTGRES_USER")"
+postgres_password="$(get_var "POSTGRES_PASSWORD")"
+auth_db_name="$(get_var "AUTH_SERVICE_DATABASE_NAME")"
+
+if [[ -z "${postgres_user}" ]]; then
+  postgres_user="postgres"
+fi
+if [[ -z "${postgres_password}" ]]; then
+  postgres_password="postgres"
+fi
+if [[ -z "${auth_db_name}" ]]; then
+  auth_db_name="auth_service"
+fi
+
+mapfile -t repo_prefixes < <(
+  grep -E '^[A-Z0-9_]+_REPO_PATH=' "${ENV_FILE}" | sed -E 's/=.*$//' | sed -E 's/_REPO_PATH$//' || true
+)
+
+for prefix in "${repo_prefixes[@]}"; do
+  repo_path="$(get_var "${prefix}_REPO_PATH")"
+  if [[ -z "${repo_path}" ]]; then
+    continue
+  fi
+
+  target_path="${repo_path}"
+  if [[ "${target_path}" != /* ]]; then
+    target_path="${ROOT_DIR}/${target_path#./}"
+  fi
+
+  env_file="${target_path}/.env"
+  if [[ ! -f "${env_file}" ]]; then
+    continue
+  fi
+
+  service_id="$(strip_wrapping_quotes "$(grep -E '^SERVICE_ID=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
+  service_secret="$(strip_wrapping_quotes "$(grep -E '^SERVICE_SECRET=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
+
+  if [[ -z "${service_id}" ]]; then
+    continue
+  fi
+
+  if [[ "${service_id}" == "auth-service" ]]; then
+    continue
+  fi
+
+  if [[ -z "${service_secret}" ]]; then
+    service_secret="$(openssl rand -hex 32)"
+    upsert_env_key "${env_file}" "SERVICE_SECRET" "${service_secret}"
+    echo "Generated SERVICE_SECRET for ${service_id} in ${env_file}"
+  fi
+
+  secret_hash="$(
+    docker exec -i "${AUTH_CONTAINER}" python - "${service_secret}" <<'PY'
+from argon2 import PasswordHasher
+import sys
+print(PasswordHasher().hash(sys.argv[1]))
+PY
+  )"
+
+  service_id_sql="$(escape_sql_literal "${service_id}")"
+  secret_hash_sql="$(escape_sql_literal "${secret_hash}")"
+  service_uuid="$(cat /proc/sys/kernel/random/uuid)"
+
+  docker exec -e PGPASSWORD="${postgres_password}" -i "${POSTGRES_CONTAINER}" \
+    psql -v ON_ERROR_STOP=1 -U "${postgres_user}" -d "${auth_db_name}" -c \
+    "INSERT INTO service_clients (id, service_id, secret_hash, is_active, created_at, updated_at, deleted_at)
+     VALUES ('${service_uuid}'::uuid, '${service_id_sql}', '${secret_hash_sql}', true, NOW(), NOW(), NULL)
+     ON CONFLICT (service_id) DO UPDATE
+       SET secret_hash = EXCLUDED.secret_hash,
+           is_active = true,
+           deleted_at = NULL,
+           updated_at = NOW();" >/dev/null
+
+  echo "Pre-registered service client: ${service_id}"
+done

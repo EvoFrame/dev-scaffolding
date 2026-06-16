@@ -1,0 +1,140 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${ROOT_DIR}/.env"
+if [[ ! -f "${ENV_FILE}" ]]; then
+  ENV_FILE="${ROOT_DIR}/.env.example"
+fi
+
+if [[ ! -f "${ENV_FILE}" ]]; then
+  echo "No .env or .env.example file found." >&2
+  exit 1
+fi
+
+KEY_DIR="${ROOT_DIR}/.docker/keys"
+PRIVATE_KEY_FILE="${KEY_DIR}/jwt_rs256_private.pem"
+PUBLIC_KEY_FILE="${KEY_DIR}/jwt_rs256_public.pem"
+
+strip_wrapping_quotes() {
+  local value="$1"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+  printf "%s" "${value}"
+}
+
+get_var() {
+  local key="$1"
+  local value
+  value="$(grep -E "^${key}=" "${ENV_FILE}" | head -n1 | cut -d= -f2- || true)"
+  strip_wrapping_quotes "${value}"
+}
+
+ensure_service_env_file() {
+  local repo_path="$1"
+  local env_path="${repo_path}/.env"
+  local env_example_path="${repo_path}/.env.example"
+
+  if [[ -f "${env_path}" ]]; then
+    return
+  fi
+
+  if [[ -f "${env_example_path}" ]]; then
+    cp -n "${env_example_path}" "${env_path}"
+    chmod 766 "${env_path}"
+  fi
+}
+
+escape_for_sed_replacement() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//&/\\&}"
+  value="${value//|/\\|}"
+  printf "%s" "${value}"
+}
+
+upsert_env_key() {
+  local env_file="$1"
+  local key="$2"
+  local value="$3"
+  local escaped_value
+
+  if [[ ! -f "${env_file}" ]]; then
+    return
+  fi
+
+  escaped_value="$(escape_for_sed_replacement "${value}")"
+
+  if grep -qE "^${key}=" "${env_file}"; then
+    sed -i -E "s|^${key}=.*$|${key}=${escaped_value}|" "${env_file}"
+  else
+    printf "%s=%s\n" "${key}" "${value}" >> "${env_file}"
+  fi
+}
+
+pem_to_env_value() {
+  local pem_file="$1"
+  awk 'BEGIN { printf "\"" } { gsub(/\r/, ""); printf "%s\\n", $0 } END { printf "\"" }' "${pem_file}"
+}
+
+generate_rsa_keys() {
+  mkdir -p "${KEY_DIR}"
+
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "openssl is required to generate RSA keys." >&2
+    exit 1
+  fi
+
+  openssl genpkey -algorithm RSA -out "${PRIVATE_KEY_FILE}" -pkeyopt rsa_keygen_bits:2048 >/dev/null 2>&1
+  openssl rsa -in "${PRIVATE_KEY_FILE}" -pubout -out "${PUBLIC_KEY_FILE}" >/dev/null 2>&1
+
+  chmod 600 "${PRIVATE_KEY_FILE}"
+  chmod 644 "${PUBLIC_KEY_FILE}"
+}
+
+generate_rsa_keys
+
+public_key_env_value="$(pem_to_env_value "${PUBLIC_KEY_FILE}")"
+private_key_env_value="$(pem_to_env_value "${PRIVATE_KEY_FILE}")"
+
+mapfile -t repo_prefixes < <(
+  grep -E '^[A-Z0-9_]+_REPO_PATH=' "${ENV_FILE}" | sed -E 's/=.*$//' | sed -E 's/_REPO_PATH$//' || true
+)
+
+for prefix in "${repo_prefixes[@]}"; do
+  repo_path="$(get_var "${prefix}_REPO_PATH")"
+  if [[ -z "${repo_path}" ]]; then
+    continue
+  fi
+
+  target_path="${repo_path}"
+  if [[ "${target_path}" != /* ]]; then
+    target_path="${ROOT_DIR}/${target_path#./}"
+  fi
+
+  if [[ ! -d "${target_path}/.git" ]]; then
+    echo "Skipping ${prefix} key injection: ${target_path} is not a git repository." >&2
+    continue
+  fi
+
+  ensure_service_env_file "${target_path}"
+  env_file="${target_path}/.env"
+  if [[ ! -f "${env_file}" ]]; then
+    echo "Skipping ${prefix} key injection: ${env_file} not found." >&2
+    continue
+  fi
+
+  upsert_env_key "${env_file}" "RS256_PUBLIC_KEY" "${public_key_env_value}"
+  if [[ "${prefix}" == "AUTH_SERVICE" ]]; then
+    upsert_env_key "${env_file}" "RS256_PRIVATE_KEY" "${private_key_env_value}"
+    echo "Injected RS256 public/private keys into ${env_file}"
+  else
+    echo "Injected RS256 public key into ${env_file}"
+  fi
+done
+
+echo "RSA key files generated at:"
+echo "- ${PRIVATE_KEY_FILE}"
+echo "- ${PUBLIC_KEY_FILE}"

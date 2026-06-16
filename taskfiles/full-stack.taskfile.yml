@@ -1,0 +1,43 @@
+version: "3"
+
+vars:
+  COMPOSE_DB: .docker/dev-stacks/postgresql/compose.yml
+  COMPOSE_REDIS: .docker/dev-stacks/redis/compose.yml
+  COMPOSE_MONITORING: .docker/dev-stacks/monitoring/compose.yml
+  COMPOSE_FULL: .docker/compose/full-stack.yml
+
+tasks:
+  full-stack-up:
+    desc: Build and start api-gateway/auth-service/user-service with Redis + Postgres
+    cmds:
+      - task init-env
+      - ./scripts/generate-postgres-init.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_FULL}} --profile services up -d --build --remove-orphans postgres redis auth-service
+      - ./scripts/pre-register-services.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_FULL}} --profile services up -d --build --remove-orphans api-gateway user-service auth-service
+    silent: true
+
+  full-stack-down:
+    desc: Stop and remove full stack containers (services + infra)
+    cmd: docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_MONITORING}} -f {{.COMPOSE_FULL}} --profile services --profile ui --profile monitoring down --remove-orphans
+    silent: true
+
+  full-stack-up-ui:
+    desc: Build and start full stack with companion UIs
+    cmds:
+      - task init-env
+      - ./scripts/generate-postgres-init.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_FULL}} --profile services up -d --build --remove-orphans postgres redis auth-service
+      - ./scripts/pre-register-services.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_FULL}} --profile services --profile ui up -d --build --remove-orphans
+    silent: true
+
+  full-stack-up-monitoring:
+    desc: Build and start full stack with monitoring stack
+    cmds:
+      - task init-env
+      - ./scripts/generate-postgres-init.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_MONITORING}} -f {{.COMPOSE_FULL}} --profile services up -d --build --remove-orphans postgres redis auth-service
+      - ./scripts/pre-register-services.sh
+      - docker compose -f {{.COMPOSE_DB}} -f {{.COMPOSE_REDIS}} -f {{.COMPOSE_MONITORING}} -f {{.COMPOSE_FULL}} --profile services --profile monitoring up -d --build --remove-orphans
+    silent: true
