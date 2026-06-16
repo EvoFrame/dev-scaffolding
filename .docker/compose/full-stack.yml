@@ -1,0 +1,78 @@
+services:
+  auth-service:
+    build:
+      context: ${PWD}/repositories/auth-service
+      dockerfile: .docker/project/Dockerfile
+    profiles:
+      - services
+    container_name: evoframe-auth-service
+    env_file:
+      - ${PWD}/repositories/auth-service/.env
+    environment:
+      SERVICE_PORT: 8080
+      DB_USER: "${AUTH_SERVICE_DATABASE_USER:-auth_service}"
+      DB_PASSWORD: "${AUTH_SERVICE_DATABASE_PASSWORD:-auth_service_password}"
+      DB_NAME: "${AUTH_SERVICE_DATABASE_NAME:-auth_service}"
+      DATABASE_URL: "postgresql+asyncpg://${AUTH_SERVICE_DATABASE_USER:-auth_service}:${AUTH_SERVICE_DATABASE_PASSWORD:-auth_service_password}@postgres:5432/${AUTH_SERVICE_DATABASE_NAME:-auth_service}"
+      REDIS_URL: "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+    ports:
+      - "127.0.0.1:${AUTH_SERVICE_HOST_PORT:-8081}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ${PWD}/repositories/user-service
+      dockerfile: .docker/project/Dockerfile
+    profiles:
+      - services
+    container_name: evoframe-user-service
+    env_file:
+      - ${PWD}/repositories/user-service/.env
+    environment:
+      SERVICE_PORT: 8080
+      DB_USER: "${USER_SERVICE_DATABASE_USER:-user_service}"
+      DB_PASSWORD: "${USER_SERVICE_DATABASE_PASSWORD:-user_service_password}"
+      DB_NAME: "${USER_SERVICE_DATABASE_NAME:-user_service}"
+      DATABASE_URL: "postgresql+asyncpg://${USER_SERVICE_DATABASE_USER:-user_service}:${USER_SERVICE_DATABASE_PASSWORD:-user_service_password}@postgres:5432/${USER_SERVICE_DATABASE_NAME:-user_service}"
+      REDIS_URL: "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+      AUTH_SERVICE_URL: "http://auth-service:8080"
+    ports:
+      - "127.0.0.1:${USER_SERVICE_HOST_PORT:-8082}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ${PWD}/repositories/api-gateway
+      dockerfile: .docker/project/Dockerfile
+    profiles:
+      - services
+    container_name: evoframe-api-gateway
+    env_file:
+      - ${PWD}/repositories/api-gateway/.env
+    environment:
+      SERVICE_PORT: 8080
+      REDIS_URL: "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+      AUTH_SERVICE_URL: "http://auth-service:8080/api"
+      USER_SERVICE_URL: "http://user-service:8080/api"
+    ports:
+      - "127.0.0.1:${API_GATEWAY_HOST_PORT:-8000}:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    restart: unless-stopped

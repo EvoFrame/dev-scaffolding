@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: api-gateway
+    static_configs:
+      - targets: ["evoframe-api-gateway:8080"]
+        labels:
+          service: api-gateway
+          component: app
+
+  - job_name: auth-service
+    static_configs:
+      - targets: ["evoframe-auth-service:8080"]
+        labels:
+          service: auth-service
+          component: app
+
+  - job_name: user-service
+    static_configs:
+      - targets: ["evoframe-user-service:8080"]
+        labels:
+          service: user-service
+          component: app
+
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ["evoframe-db-exporter:9187"]
+        labels:
+          service: shared-postgres
+          component: postgres
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ["evoframe-redis-exporter:9121"]
+        labels:
+          service: shared-redis
+          component: redis
