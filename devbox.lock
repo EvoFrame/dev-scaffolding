@@ -1,0 +1,105 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "docker@latest": {
+      "last_modified": "2026-06-05T19:07:58Z",
+      "resolved": "github:NixOS/nixpkgs/891eaa77f0eed53352194677991bd30978f9b0ad#docker",
+      "source": "devbox-search",
+      "version": "29.5.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/6hz62n44yhyp1pkqd0ppbvwf80sd5zac-docker-29.5.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/6hz62n44yhyp1pkqd0ppbvwf80sd5zac-docker-29.5.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/lpyffv0gwmjr406gjjwgb5zqr8adza2k-docker-29.5.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/lpyffv0gwmjr406gjjwgb5zqr8adza2k-docker-29.5.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/gd4wrzdpbigqg64y6y83fci0jn65axjy-docker-29.5.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/gd4wrzdpbigqg64y6y83fci0jn65axjy-docker-29.5.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/2w06n3nsc152qgw8dv6xkrlch9chnh3v-docker-29.5.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/2w06n3nsc152qgw8dv6xkrlch9chnh3v-docker-29.5.2"
+        }
+      }
+    },
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "last_modified": "2026-06-08T15:01:26Z",
+      "resolved": "github:NixOS/nixpkgs/8c3cede7ddc26bd659d2d383b5610efbd2c7a16e?lastModified=1780930886&narHash=sha256-rppURzHviaQN131F%2BnLiLdGfcb0uCd9gGP0E5%2Biw9MI%3D"
+    },
+    "go-task@latest": {
+      "last_modified": "2026-05-21T08:15:18Z",
+      "resolved": "github:NixOS/nixpkgs/4a29d733e8a7d5b824c3d8c958a946a9867b3eb2#go-task",
+      "source": "devbox-search",
+      "version": "3.48.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/hg0sx6ah2pinw09i8s3gwicq1x54gbvn-go-task-3.48.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/hg0sx6ah2pinw09i8s3gwicq1x54gbvn-go-task-3.48.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/6bafb6yz2861yxjljadd1m22v2gryl24-go-task-3.48.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/6bafb6yz2861yxjljadd1m22v2gryl24-go-task-3.48.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xajpc9zjvhmdmwjab8i8grxc248wnzpq-go-task-3.48.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/xajpc9zjvhmdmwjab8i8grxc248wnzpq-go-task-3.48.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ajlbzd5gnxrs1yki1sjf327rjx7qq060-go-task-3.48.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ajlbzd5gnxrs1yki1sjf327rjx7qq060-go-task-3.48.0"
+        }
+      }
+    }
+  }
+}
