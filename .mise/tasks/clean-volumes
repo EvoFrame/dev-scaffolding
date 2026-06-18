@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Remove compose volumes and generated Postgres init SQL"
 #MISE alias="clv"
-docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" --profile services --profile ui --profile monitoring down --volumes --remove-orphans
+docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" --profile infra --profile infra-ui --profile monitoring down --volumes --remove-orphans
 rm -f ./.docker/dev-stacks/postgresql/init/01-init-multiple-dbs.sql

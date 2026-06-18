@@ -4,8 +4,7 @@ services:
   postgres:
     image: postgres:16-alpine
     profiles:
-      - services
-      - dev-stack
+      - infra
     container_name: evoframe-postgres
     ports:
       - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
@@ -26,7 +25,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     profiles:
-      - ui
+      - infra-ui
     container_name: evoframe-pgadmin
     ports:
       - "127.0.0.1:${PGADMIN_HOST_PORT:-5050}:80"

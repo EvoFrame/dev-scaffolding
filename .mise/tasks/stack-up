@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 set -e
-#MISE description="Generate Postgres init SQL and boot Redis + Postgres"
-#MISE alias="bs"
+#MISE description="Build and start full stack (app + infra) [--ui] [--monitoring]"
+#MISE alias="su"
 #USAGE flag "--ui" help="Also start UI companions (pgAdmin, RedisInsight)"
 #USAGE flag "--monitoring" help="Also start monitoring stack (Prometheus, Grafana, Loki)"
 
 COMPOSE_FILES=(-f "$COMPOSE_DB" -f "$COMPOSE_REDIS")
 [ "${usage_monitoring:-false}" = "true" ] && COMPOSE_FILES+=(-f "$COMPOSE_MONITORING")
+COMPOSE_FILES+=(-f "$COMPOSE_FULL")
 
-PROFILES=(--profile infra)
+PROFILES=(--profile infra --profile services)
 [ "${usage_ui:-false}" = "true" ] && PROFILES+=(--profile infra-ui)
 [ "${usage_monitoring:-false}" = "true" ] && PROFILES+=(--profile monitoring)
 
+mise run init-env
 ./scripts/generate-postgres-init.sh
-docker compose "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up -d --remove-orphans
+docker compose "${COMPOSE_FILES[@]}" --profile infra --profile services up -d --build --remove-orphans postgres redis auth-service
+./scripts/pre-register-services.sh
+docker compose "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up -d --build --remove-orphans

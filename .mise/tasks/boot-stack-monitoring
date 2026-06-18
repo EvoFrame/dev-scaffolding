@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Boot Redis/Postgres stack with monitoring (Prometheus, Loki, Grafana)"
-#MISE alias="bsm"
-./scripts/generate-postgres-init.sh
-docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" --profile services --profile monitoring up -d --remove-orphans

@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Build and start api-gateway/auth-service/user-service with Redis + Postgres"
-#MISE alias="fsu"
-mise run init-env
-./scripts/generate-postgres-init.sh
-docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_FULL" --profile services up -d --build --remove-orphans postgres redis auth-service
-./scripts/pre-register-services.sh
-docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_FULL" --profile services up -d --build --remove-orphans api-gateway user-service auth-service
