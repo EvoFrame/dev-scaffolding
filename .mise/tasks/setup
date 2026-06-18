@@ -3,4 +3,4 @@
 #MISE alias="s"
 mise run init-env
 mise run repo:clone
-mise run stack-up
+mise run stack:up

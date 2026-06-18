@@ -5,12 +5,12 @@ This repository is a quick local scaffolding for Evoframe microservices.
 ## 5-minute quickstart
 
 1. `mise run setup`
-2. `mise run stack-up`
+2. `mise run stack:up`
 3. Open API gateway at `http://127.0.0.1:8000`
 
 For observability:
 
-1. `mise run stack-up -- --monitoring`
+1. `mise run stack:up -- --monitoring`
 2. Open Grafana at `http://127.0.0.1:3000`
 3. Open Prometheus at `http://127.0.0.1:9090`
 
@@ -29,10 +29,10 @@ For observability:
 - `mise run repo:clone`: clone/update repositories from `.env` (or `.env.example`).
 - `mise run rotate-keys`: regenerate RSA keys and reinject key env vars.
 - `mise run pre-register-services`: register non-auth service clients in auth-service and ensure `SERVICE_SECRET` exists in each service `.env`.
-- `mise run stack-up`: build/start full stack (infra + app services).
-- `mise run stack-up -- --ui`: full stack + UIs (pgAdmin, RedisInsight).
-- `mise run stack-up -- --monitoring`: full stack + monitoring (Grafana/Prometheus/Loki).
-- `mise run stack-down`: stop all stack containers.
+- `mise run stack:up`: build/start full stack (infra + app services).
+- `mise run stack:up -- --ui`: full stack + UIs (pgAdmin, RedisInsight).
+- `mise run stack:up -- --monitoring`: full stack + monitoring (Grafana/Prometheus/Loki).
+- `mise run stack:down`: stop all stack containers.
 
 ## Reset commands
 
