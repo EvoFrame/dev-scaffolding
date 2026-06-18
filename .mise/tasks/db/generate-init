@@ -50,7 +50,7 @@ mapfile -t db_prefixes < <(
 
 {
   echo "-- Generated from $(basename "${ENV_FILE}")"
-  echo "-- Re-run task boot-stack after editing .env/.env.example"
+  echo "-- Re-run task stack-up after editing .env/.env.example"
   echo
 } > "${SQL_FILE}"
 

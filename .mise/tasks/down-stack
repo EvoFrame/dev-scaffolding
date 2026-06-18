@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Stop and remove Redis + Postgres compose resources (keeps volumes)"
-#MISE alias="ds"
-docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" --profile infra --profile infra-ui down --remove-orphans

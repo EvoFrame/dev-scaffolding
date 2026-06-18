@@ -29,14 +29,10 @@ For observability:
 - `mise run repo:clone`: clone/update repositories from `.env` (or `.env.example`).
 - `mise run rotate-keys`: regenerate RSA keys and reinject key env vars.
 - `mise run pre-register-services`: register non-auth service clients in auth-service and ensure `SERVICE_SECRET` exists in each service `.env`.
-- `mise run boot-stack`: start shared postgres + redis.
-- `mise run boot-stack -- --ui`: start infra + pgAdmin + RedisInsight.
-- `mise run boot-stack -- --monitoring`: start infra + monitoring stack.
-- `mise run stack-up`: build/start auth-service first, pre-register service clients, then start all app services + shared infra.
-- `mise run stack-up -- --ui`: full stack + UIs.
+- `mise run stack-up`: build/start full stack (infra + app services).
+- `mise run stack-up -- --ui`: full stack + UIs (pgAdmin, RedisInsight).
 - `mise run stack-up -- --monitoring`: full stack + monitoring (Grafana/Prometheus/Loki).
-- `mise run stack-down`: stop full stack containers.
-- `mise run down-stack`: stop infra containers.
+- `mise run stack-down`: stop all stack containers.
 
 ## Reset commands
 
