@@ -14,7 +14,7 @@ PROFILES=(--profile infra --profile services)
 [ "${usage_monitoring:-false}" = "true" ] && PROFILES+=(--profile monitoring)
 
 mise run init-env
-./scripts/generate-postgres-init.sh
+mise run db:generate-init
 docker compose "${COMPOSE_FILES[@]}" --profile infra --profile services up -d --build --remove-orphans postgres redis auth-service
-./scripts/pre-register-services.sh
+mise run pre-register-services
 docker compose "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up -d --build --remove-orphans

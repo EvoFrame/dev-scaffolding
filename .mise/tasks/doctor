@@ -1,4 +1,87 @@
 #!/usr/bin/env bash
+set -euo pipefail
 #MISE description="Check local setup health and print actionable diagnostics"
 #MISE alias="dr"
-./scripts/doctor.sh
+
+ENV_FILE=".env"
+if [[ ! -f "${ENV_FILE}" ]]; then
+  ENV_FILE=".env.example"
+fi
+
+failures=0
+
+ok()   { echo "[OK]   $1"; }
+warn() { echo "[WARN] $1"; }
+err()  { echo "[ERR]  $1"; failures=$((failures + 1)); }
+
+check_cmd() {
+  if command -v "$1" >/dev/null 2>&1; then ok "command '$1' is available"
+  else err "command '$1' is missing"; fi
+}
+
+check_file() {
+  if [[ -f "$1" ]]; then ok "file exists: $1"
+  else err "missing file: $1"; fi
+}
+
+check_dir() {
+  if [[ -d "$1" ]]; then ok "directory exists: $1"
+  else err "missing directory: $1"; fi
+}
+
+echo "== Tooling =="
+check_cmd docker
+check_cmd task
+check_cmd git
+check_cmd openssl
+
+echo
+echo "== Core files =="
+check_file "${ENV_FILE}"
+check_file ".docker/dev-stacks/postgresql/compose.yml"
+check_file ".docker/dev-stacks/redis/compose.yml"
+check_file ".docker/dev-stacks/monitoring/compose.yml"
+check_file ".docker/compose/full-stack.yml"
+
+echo
+echo "== Repositories =="
+for repo in api-gateway auth-service user-service; do
+  check_dir "repositories/${repo}/.git"
+  if [[ -f "repositories/${repo}/.env" ]]; then
+    ok "env exists: repositories/${repo}/.env"
+  else
+    warn "env missing: repositories/${repo}/.env (run: mise run init-env)"
+  fi
+done
+
+echo
+echo "== RSA keys =="
+check_file ".docker/keys/jwt_rs256_private.pem"
+check_file ".docker/keys/jwt_rs256_public.pem"
+
+echo
+echo "== Docker daemon =="
+if docker info >/dev/null 2>&1; then ok "docker daemon is reachable"
+else err "docker daemon is not reachable"; fi
+
+echo
+echo "== Compose sanity =="
+if docker compose \
+  -f ".docker/dev-stacks/postgresql/compose.yml" \
+  -f ".docker/dev-stacks/redis/compose.yml" \
+  -f ".docker/dev-stacks/monitoring/compose.yml" \
+  -f ".docker/compose/full-stack.yml" \
+  --profile infra --profile services \
+  config >/dev/null 2>&1; then
+  ok "compose files resolve correctly"
+else
+  err "compose files do not resolve; run docker compose config manually"
+fi
+
+echo
+if [[ "${failures}" -eq 0 ]]; then
+  echo "Doctor finished: all critical checks passed."
+else
+  echo "Doctor finished with ${failures} error(s)."
+  exit 1
+fi

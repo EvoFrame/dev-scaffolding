@@ -2,5 +2,5 @@
 #MISE description="Bootstrap project for first run (env, repos, keys, infra)"
 #MISE alias="su"
 mise run init-env
-mise run clone-repos
+mise run repo:clone
 mise run boot-stack

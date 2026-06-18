@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+#MISE description="Generate Postgres init SQL from .env service database definitions"
+#MISE alias="dgi"
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="${ROOT_DIR}/.env"
+ENV_FILE=".env"
 if [[ ! -f "${ENV_FILE}" ]]; then
-  ENV_FILE="${ROOT_DIR}/.env.example"
+  ENV_FILE=".env.example"
 fi
 
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -12,7 +13,7 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
-SQL_FILE="${ROOT_DIR}/.docker/dev-stacks/postgresql/init/01-init-multiple-dbs.sql"
+SQL_FILE=".docker/dev-stacks/postgresql/init/01-init-multiple-dbs.sql"
 mkdir -p "$(dirname "${SQL_FILE}")"
 
 strip_wrapping_quotes() {
@@ -69,12 +70,8 @@ for prefix in "${db_prefixes[@]}"; do
     continue
   fi
 
-  if [[ -z "${db_user}" ]]; then
-    db_user="${db_name}"
-  fi
-  if [[ -z "${db_password}" ]]; then
-    db_password="${db_user}_password"
-  fi
+  if [[ -z "${db_user}" ]]; then db_user="${db_name}"; fi
+  if [[ -z "${db_password}" ]]; then db_password="${db_user}_password"; fi
 
   db_name_escaped="$(escape_ident "${db_name}")"
   db_user_ident_escaped="$(escape_ident "${db_user}")"

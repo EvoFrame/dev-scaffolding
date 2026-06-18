@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Start monitoring stack with shared infra exporters"
 #MISE alias="mu"
-./scripts/generate-postgres-init.sh
+mise run db:generate-init
 docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" --profile infra --profile monitoring up -d --remove-orphans
