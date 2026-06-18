@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Stop monitoring stack containers"
+#MISE alias="md"
+docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" --profile monitoring down --remove-orphans

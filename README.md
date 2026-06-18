@@ -4,13 +4,13 @@ This repository is a quick local scaffolding for Evoframe microservices.
 
 ## 5-minute quickstart
 
-1. `task setup`
-2. `task full-stack-up`
+1. `mise run setup`
+2. `mise run full-stack-up`
 3. Open API gateway at `http://127.0.0.1:8000`
 
 For observability:
 
-1. `task full-stack-up-monitoring`
+1. `mise run full-stack-up-monitoring`
 2. Open Grafana at `http://127.0.0.1:3000`
 3. Open Prometheus at `http://127.0.0.1:9090`
 
@@ -24,25 +24,25 @@ For observability:
 
 ## Daily commands
 
-- `task setup`: bootstrap env files, clone repos, generate keys, and boot infra.
-- `task doctor`: run environment diagnostics (docker/tooling/files/compose).
-- `task clone-repos`: clone/update repositories from `.env` (or `.env.example`).
-- `task rotate-keys`: regenerate RSA keys and reinject key env vars.
-- `task pre-register-services`: register non-auth service clients in auth-service and ensure `SERVICE_SECRET` exists in each service `.env`.
-- `task boot-stack`: start shared postgres + redis.
-- `task boot-stack-ui`: start infra + pgAdmin + RedisInsight.
-- `task boot-stack-monitoring`: start infra + monitoring stack.
-- `task full-stack-up`: build/start auth-service first, pre-register service clients, then start all app services + shared infra.
-- `task full-stack-up-ui`: full stack + UIs.
-- `task full-stack-up-monitoring`: full stack + monitoring (Grafana/Prometheus/Loki).
-- `task full-stack-down`: stop full stack containers.
-- `task down-stack`: stop infra containers.
+- `mise run setup`: bootstrap env files, clone repos, generate keys, and boot infra.
+- `mise run doctor`: run environment diagnostics (docker/tooling/files/compose).
+- `mise run clone-repos`: clone/update repositories from `.env` (or `.env.example`).
+- `mise run rotate-keys`: regenerate RSA keys and reinject key env vars.
+- `mise run pre-register-services`: register non-auth service clients in auth-service and ensure `SERVICE_SECRET` exists in each service `.env`.
+- `mise run boot-stack`: start shared postgres + redis.
+- `mise run boot-stack-ui`: start infra + pgAdmin + RedisInsight.
+- `mise run boot-stack-monitoring`: start infra + monitoring stack.
+- `mise run full-stack-up`: build/start auth-service first, pre-register service clients, then start all app services + shared infra.
+- `mise run full-stack-up-ui`: full stack + UIs.
+- `mise run full-stack-up-monitoring`: full stack + monitoring (Grafana/Prometheus/Loki).
+- `mise run full-stack-down`: stop full stack containers.
+- `mise run down-stack`: stop infra containers.
 
 ## Reset commands
 
-- `task clean-repos`: remove cloned repositories listed in env.
-- `task clean-volumes`: remove compose volumes and generated postgres init SQL.
-- `task monitoring-down`: stop monitoring stack containers.
+- `mise run clean-repos`: remove cloned repositories listed in env.
+- `mise run clean-volumes`: remove compose volumes and generated postgres init SQL.
+- `mise run monitoring-down`: stop monitoring stack containers.
 
 ## Stack endpoints
 

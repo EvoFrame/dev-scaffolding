@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Regenerate RSA keys and reinject values in service env files"
+#MISE alias="rk"
+./scripts/sync-rsa-keys.sh

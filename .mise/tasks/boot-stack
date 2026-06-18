@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Generate Postgres init SQL and boot Redis + Postgres"
+#MISE alias="bs"
+./scripts/generate-postgres-init.sh
+docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" --profile services up -d --remove-orphans

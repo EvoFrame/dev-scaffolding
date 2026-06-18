@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Register service clients in auth-service database"
+#MISE alias="prs"
+./scripts/pre-register-services.sh

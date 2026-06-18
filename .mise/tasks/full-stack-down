@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Stop and remove full stack containers (services + infra)"
+#MISE alias="fsd"
+docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" -f "$COMPOSE_MONITORING" -f "$COMPOSE_FULL" --profile services --profile ui --profile monitoring down --remove-orphans

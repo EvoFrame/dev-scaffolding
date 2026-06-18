@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Check local setup health and print actionable diagnostics"
+#MISE alias="dr"
+./scripts/doctor.sh

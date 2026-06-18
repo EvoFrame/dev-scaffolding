@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Clone/update repositories defined in .env (or .env.example fallback)"
+#MISE alias="cr"
+./scripts/clone-repos.sh

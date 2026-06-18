@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Bootstrap project for first run (env, repos, keys, infra)"
+#MISE alias="su"
+mise run init-env
+mise run clone-repos
+mise run boot-stack

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Boot Redis/Postgres stack with pgAdmin + RedisInsight"
+#MISE alias="bsu"
+./scripts/generate-postgres-init.sh
+docker compose -f "$COMPOSE_DB" -f "$COMPOSE_REDIS" --profile services --profile ui up -d --remove-orphans

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Remove cloned repositories listed in .env (or .env.example fallback)"
+#MISE alias="clr"
+./scripts/clean-repos.sh
