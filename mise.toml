@@ -2,7 +2,8 @@
 enter = "mise install --quiet"
 
 [env]
+SERVICE_REGISTRY = "config/services.toml"
 COMPOSE_DB = ".docker/dev-stacks/postgresql/compose.yml"
 COMPOSE_REDIS = ".docker/dev-stacks/redis/compose.yml"
 COMPOSE_MONITORING = ".docker/dev-stacks/monitoring/compose.yml"
-COMPOSE_FULL = ".docker/compose/full-stack.yml"
+COMPOSE_SERVICES_GENERATED = ".docker/compose/services.generated.yml"

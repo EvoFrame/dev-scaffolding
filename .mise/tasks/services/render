@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#MISE description="Render docker compose services file from config/services.toml"
+#MISE alias="sr"
+
+python3 .mise/scripts/service_registry.py render-compose --output "${COMPOSE_SERVICES_GENERATED}"

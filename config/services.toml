@@ -1,0 +1,120 @@
+[[services]]
+id = "auth-service"
+env_file = "./repositories/auth-service/.env"
+
+  [services.repo]
+  url = "git@github.com:EvoFrame/auth-service.git"
+  branch = "develop"
+  path = "./repositories/auth-service"
+
+  [services.docker]
+  context = "./repositories/auth-service"
+  dockerfile = ".docker/project/Dockerfile"
+
+  [services.runtime]
+  host_port = "${AUTH_SERVICE_HOST_PORT:-8081}"
+  container_port = 8080
+  profiles = ["services"]
+  depends_on = ["postgres:service_healthy", "redis:service_healthy"]
+
+  [services.environment]
+  DATABASE_URL = "postgresql+asyncpg://${AUTH_SERVICE_DATABASE_USER:-auth_service}:${AUTH_SERVICE_DATABASE_PASSWORD:-auth_service_password}@postgres:5432/${AUTH_SERVICE_DATABASE_NAME:-auth_service}"
+  DB_NAME = "${AUTH_SERVICE_DATABASE_NAME:-auth_service}"
+  DB_PASSWORD = "${AUTH_SERVICE_DATABASE_PASSWORD:-auth_service_password}"
+  DB_USER = "${AUTH_SERVICE_DATABASE_USER:-auth_service}"
+  REDIS_URL = "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+  SERVICE_PORT = "8080"
+
+  [services.database]
+  enabled = true
+  name = "auth_service"
+  user = "auth_service"
+  password = "auth_service_password"
+
+  [services.auth]
+  register_client = false
+
+  [services.keys]
+  inject_private_key = true
+
+[[services]]
+id = "user-service"
+env_file = "./repositories/user-service/.env"
+
+  [services.repo]
+  url = "git@github.com:EvoFrame/user-service.git"
+  branch = "develop"
+  path = "./repositories/user-service"
+
+  [services.docker]
+  context = "./repositories/user-service"
+  dockerfile = ".docker/project/Dockerfile"
+
+  [services.runtime]
+  host_port = "${USER_SERVICE_HOST_PORT:-8082}"
+  container_port = 8080
+  profiles = ["services"]
+  depends_on = [
+    "postgres:service_healthy",
+    "redis:service_healthy",
+    "auth-service:service_started"
+  ]
+
+  [services.environment]
+  AUTH_SERVICE_URL = "http://auth-service:8080"
+  DATABASE_URL = "postgresql+asyncpg://${USER_SERVICE_DATABASE_USER:-user_service}:${USER_SERVICE_DATABASE_PASSWORD:-user_service_password}@postgres:5432/${USER_SERVICE_DATABASE_NAME:-user_service}"
+  DB_NAME = "${USER_SERVICE_DATABASE_NAME:-user_service}"
+  DB_PASSWORD = "${USER_SERVICE_DATABASE_PASSWORD:-user_service_password}"
+  DB_USER = "${USER_SERVICE_DATABASE_USER:-user_service}"
+  REDIS_URL = "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+  SERVICE_PORT = "8080"
+
+  [services.database]
+  enabled = true
+  name = "user_service"
+  user = "user_service"
+  password = "user_service_password"
+
+  [services.auth]
+  register_client = true
+
+  [services.keys]
+  inject_private_key = false
+
+[[services]]
+id = "api-gateway"
+env_file = "./repositories/api-gateway/.env"
+
+  [services.repo]
+  url = "git@github.com:EvoFrame/api-gateway.git"
+  branch = "develop"
+  path = "./repositories/api-gateway"
+
+  [services.docker]
+  context = "./repositories/api-gateway"
+  dockerfile = ".docker/project/Dockerfile"
+
+  [services.runtime]
+  host_port = "${API_GATEWAY_HOST_PORT:-8000}"
+  container_port = 8080
+  profiles = ["services"]
+  depends_on = [
+    "redis:service_healthy",
+    "auth-service:service_started",
+    "user-service:service_started"
+  ]
+
+  [services.environment]
+  AUTH_SERVICE_URL = "http://auth-service:8080/api"
+  REDIS_URL = "redis://default:${REDIS_PASSWORD:-redis}@redis:6379/0"
+  SERVICE_PORT = "8080"
+  USER_SERVICE_URL = "http://user-service:8080/api"
+
+  [services.database]
+  enabled = false
+
+  [services.auth]
+  register_client = true
+
+  [services.keys]
+  inject_private_key = false

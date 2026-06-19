@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#MISE description="Validate config/services.toml"
+#MISE alias="sv"
+
+python3 .mise/scripts/service_registry.py validate

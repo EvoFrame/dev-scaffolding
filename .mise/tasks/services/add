@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#MISE description="Append a new service template to config/services.toml"
+#USAGE arg "<id>" help="Service id (for example: billing-service)"
+#USAGE arg "<repo_url>" help="Git repository URL"
+#USAGE arg "[repo_branch]" help="Repository branch (default: main)"
+#USAGE arg "[repo_path]" help="Local repository path (default: ./repositories/<id>)"
+#USAGE arg "[host_port]" help="Compose host port expression (default: 8080)"
+
+if [[ -z "${usage_id:-}" || -z "${usage_repo_url:-}" ]]; then
+  echo "Usage: mise run services:add -- <id> <repo_url> [repo_branch] [repo_path] [host_port]" >&2
+  exit 1
+fi
+
+add_args=(--id "${usage_id}" --repo-url "${usage_repo_url}")
+if [[ -n "${usage_repo_branch:-}" ]]; then
+  add_args+=(--repo-branch "${usage_repo_branch}")
+fi
+if [[ -n "${usage_repo_path:-}" ]]; then
+  add_args+=(--repo-path "${usage_repo_path}")
+fi
+if [[ -n "${usage_host_port:-}" ]]; then
+  add_args+=(--host-port "${usage_host_port}")
+fi
+
+python3 .mise/scripts/service_registry.py add "${add_args[@]}"
+mise run services:render
