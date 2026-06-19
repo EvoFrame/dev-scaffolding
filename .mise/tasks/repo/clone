@@ -27,5 +27,3 @@ while IFS=$'\t' read -r service_id repo_url repo_branch repo_path; do
   git clone --quiet --branch "${repo_branch}" "${repo_url}" "${target_path}"
   echo "Cloned ${service_id} -> ${target_path} (${repo_branch})"
 done < <(python3 .mise/scripts/service_registry.py repos)
-
-mise run setup:rotate-keys

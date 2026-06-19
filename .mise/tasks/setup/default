@@ -3,4 +3,6 @@
 #MISE alias="setup"
 mise run setup:init-env
 mise run repo:clone
-mise run stack:up
+mise run setup:rotate-keys
+mise run setup:set-dev-env
+# mise run stack:up
