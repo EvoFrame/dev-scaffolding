@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-#MISE description="Register service clients in auth-service database"
+#MISE description="Register service clients declared in config/services.toml"
 #MISE alias="prs"
-
-ENV_FILE=".env"
-if [[ ! -f "${ENV_FILE}" ]]; then
-  ENV_FILE=".env.example"
-fi
-
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "No .env or .env.example file found." >&2
-  exit 1
-fi
 
 AUTH_CONTAINER="evoframe-auth-service"
 POSTGRES_CONTAINER="evoframe-postgres"
@@ -23,13 +13,6 @@ strip_wrapping_quotes() {
   value="${value%\'}"
   value="${value#\'}"
   printf "%s" "${value}"
-}
-
-get_var() {
-  local key="$1"
-  local value
-  value="$(grep -E "^${key}=" "${ENV_FILE}" | head -n1 | cut -d= -f2- || true)"
-  strip_wrapping_quotes "${value}"
 }
 
 escape_for_sed_replacement() {
@@ -72,6 +55,13 @@ wait_auth_ready() {
   exit 1
 }
 
+python3 .mise/scripts/service_registry.py validate >/dev/null
+
+if [[ ! -f ".env" ]]; then
+  echo "Missing .env file." >&2
+  exit 1
+fi
+
 if ! docker inspect -f '{{.State.Running}}' "${AUTH_CONTAINER}" >/dev/null 2>&1; then
   echo "Auth container '${AUTH_CONTAINER}' is not running." >&2
   exit 1
@@ -82,45 +72,36 @@ if ! docker inspect -f '{{.State.Running}}' "${POSTGRES_CONTAINER}" >/dev/null 2
   exit 1
 fi
 
-auth_host_port="$(get_var "AUTH_SERVICE_HOST_PORT")"
+auth_host_port="$(strip_wrapping_quotes "$(grep -E '^AUTH_SERVICE_HOST_PORT=' .env | head -n1 | cut -d= -f2- || true)")"
 if [[ -z "${auth_host_port}" ]]; then
   auth_host_port="8081"
 fi
 
 wait_auth_ready "${auth_host_port}"
 
-postgres_user="$(get_var "POSTGRES_USER")"
-postgres_password="$(get_var "POSTGRES_PASSWORD")"
-auth_db_name="$(get_var "AUTH_SERVICE_DATABASE_NAME")"
+postgres_user="$(strip_wrapping_quotes "$(grep -E '^POSTGRES_USER=' .env | head -n1 | cut -d= -f2- || true)")"
+postgres_password="$(strip_wrapping_quotes "$(grep -E '^POSTGRES_PASSWORD=' .env | head -n1 | cut -d= -f2- || true)")"
+auth_db_name="$(strip_wrapping_quotes "$(grep -E '^AUTH_SERVICE_DATABASE_NAME=' .env | head -n1 | cut -d= -f2- || true)")"
 
 if [[ -z "${postgres_user}" ]]; then postgres_user="postgres"; fi
 if [[ -z "${postgres_password}" ]]; then postgres_password="postgres"; fi
 if [[ -z "${auth_db_name}" ]]; then auth_db_name="auth_service"; fi
 
-mapfile -t repo_prefixes < <(
-  grep -E '^[A-Z0-9_]+_REPO_PATH=' "${ENV_FILE}" | sed -E 's/=.*$//' | sed -E 's/_REPO_PATH$//' || true
-)
-
-for prefix in "${repo_prefixes[@]}"; do
-  repo_path="$(get_var "${prefix}_REPO_PATH")"
-  if [[ -z "${repo_path}" ]]; then
-    continue
+while IFS=$'\t' read -r registry_service_id _repo_path env_file_path; do
+  env_file="${env_file_path}"
+  if [[ "${env_file}" != /* ]]; then
+    env_file="${PWD}/${env_file#./}"
   fi
 
-  target_path="${repo_path}"
-  if [[ "${target_path}" != /* ]]; then
-    target_path="${PWD}/${target_path#./}"
-  fi
-
-  env_file="${target_path}/.env"
   if [[ ! -f "${env_file}" ]]; then
+    echo "Skipping ${registry_service_id}: ${env_file} not found." >&2
     continue
   fi
 
   service_id="$(strip_wrapping_quotes "$(grep -E '^SERVICE_ID=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
   service_secret="$(strip_wrapping_quotes "$(grep -E '^SERVICE_SECRET=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
 
-  if [[ -z "${service_id}" || "${service_id}" == "auth-service" ]]; then
+  if [[ -z "${service_id}" ]]; then
     continue
   fi
 
@@ -153,4 +134,4 @@ PY
            updated_at = NOW();" >/dev/null
 
   echo "Pre-registered service client: ${service_id}"
-done
+done < <(python3 .mise/scripts/service_registry.py registrable-services)

@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-#MISE description="Set APP_ENV=development and DEBUG=true in all cloned repo .env files"
+#MISE description="Set APP_ENV=development and DEBUG=true in all registry service .env files"
 #MISE alias="sde"
-
-ENV_FILE=".env"
-if [[ ! -f "${ENV_FILE}" ]]; then
-  ENV_FILE=".env.example"
-fi
-
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "No .env or .env.example file found." >&2
-  exit 1
-fi
 
 upsert_env_key() {
   local env_file="$1"
@@ -25,33 +15,20 @@ upsert_env_key() {
   fi
 }
 
-mapfile -t repo_prefixes < <(
-  grep -E '^[A-Z0-9_]+_REPO_PATH=' "${ENV_FILE}" | sed -E 's/=.*$//' | sed -E 's/_REPO_PATH$//' || true
-)
+python3 .mise/scripts/service_registry.py validate >/dev/null
 
-for prefix in "${repo_prefixes[@]}"; do
-  repo_path="$(grep -E "^${prefix}_REPO_PATH=" "${ENV_FILE}" | head -n1 | cut -d= -f2- || true)"
-  repo_path="${repo_path%\"}"
-  repo_path="${repo_path#\"}"
-  repo_path="${repo_path%\'}"
-  repo_path="${repo_path#\'}"
-
-  if [[ -z "${repo_path}" ]]; then
-    continue
+while IFS=$'\t' read -r service_id _repo_path env_file_rel; do
+  env_file="${env_file_rel}"
+  if [[ "${env_file}" != /* ]]; then
+    env_file="${PWD}/${env_file#./}"
   fi
 
-  target_path="${repo_path}"
-  if [[ "${target_path}" != /* ]]; then
-    target_path="${PWD}/${target_path#./}"
-  fi
-
-  env_file="${target_path}/.env"
   if [[ ! -f "${env_file}" ]]; then
-    echo "Skipping ${prefix}: ${env_file} not found." >&2
+    echo "Skipping ${service_id}: ${env_file} not found." >&2
     continue
   fi
 
   upsert_env_key "${env_file}" "APP_ENV" "development"
   upsert_env_key "${env_file}" "DEBUG" "true"
   echo "Set APP_ENV=development and DEBUG=true in ${env_file}"
-done
+done < <(python3 .mise/scripts/service_registry.py service-envs)

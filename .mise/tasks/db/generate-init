@@ -1,36 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
-#MISE description="Generate Postgres init SQL from .env service database definitions"
+#MISE description="Generate Postgres init SQL from config/services.toml"
 #MISE alias="dgi"
-
-ENV_FILE=".env"
-if [[ ! -f "${ENV_FILE}" ]]; then
-  ENV_FILE=".env.example"
-fi
-
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "No .env or .env.example file found." >&2
-  exit 1
-fi
 
 SQL_FILE=".docker/dev-stacks/postgresql/init/01-init-multiple-dbs.sql"
 mkdir -p "$(dirname "${SQL_FILE}")"
-
-strip_wrapping_quotes() {
-  local value="$1"
-  value="${value%\"}"
-  value="${value#\"}"
-  value="${value%\'}"
-  value="${value#\'}"
-  printf "%s" "${value}"
-}
-
-get_var() {
-  local key="$1"
-  local value
-  value="$(grep -E "^${key}=" "${ENV_FILE}" | head -n1 | cut -d= -f2- || true)"
-  strip_wrapping_quotes "${value}"
-}
 
 escape_ident() {
   local value="$1"
@@ -44,35 +18,21 @@ escape_literal() {
   printf "%s" "${value}"
 }
 
-mapfile -t db_prefixes < <(
-  grep -E '^[A-Z0-9_]+_HAS_DATABASE=true$' "${ENV_FILE}" | sed -E 's/_HAS_DATABASE=true$//' || true
-)
+python3 .mise/scripts/service_registry.py validate >/dev/null
 
 {
-  echo "-- Generated from $(basename "${ENV_FILE}")"
-  echo "-- Re-run task stack-up after editing .env/.env.example"
+  echo "-- Generated from config/services.toml"
+  echo "-- Re-run task stack-up after editing service database definitions"
   echo
 } > "${SQL_FILE}"
 
-if [[ ${#db_prefixes[@]} -eq 0 ]]; then
-  echo "-- No *_HAS_DATABASE=true entries found." >> "${SQL_FILE}"
+if ! python3 .mise/scripts/service_registry.py databases | grep -q .; then
+  echo "-- No services with database.enabled=true entries found." >> "${SQL_FILE}"
   echo "Generated ${SQL_FILE} (no service databases configured)."
   exit 0
 fi
 
-for prefix in "${db_prefixes[@]}"; do
-  db_name="$(get_var "${prefix}_DATABASE_NAME")"
-  db_user="$(get_var "${prefix}_DATABASE_USER")"
-  db_password="$(get_var "${prefix}_DATABASE_PASSWORD")"
-
-  if [[ -z "${db_name}" ]]; then
-    echo "Skipping ${prefix}: ${prefix}_DATABASE_NAME is required." >&2
-    continue
-  fi
-
-  if [[ -z "${db_user}" ]]; then db_user="${db_name}"; fi
-  if [[ -z "${db_password}" ]]; then db_password="${db_user}_password"; fi
-
+while IFS=$'\t' read -r service_id db_name db_user db_password; do
   db_name_escaped="$(escape_ident "${db_name}")"
   db_user_ident_escaped="$(escape_ident "${db_user}")"
   db_user_literal_escaped="$(escape_literal "${db_user}")"
@@ -93,6 +53,7 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${db_name_escaped}')\
 GRANT ALL PRIVILEGES ON DATABASE "${db_name_escaped}" TO "${db_user_ident_escaped}";
 
 SQL
-done
+  echo "Prepared database init for ${service_id}"
+done < <(python3 .mise/scripts/service_registry.py databases)
 
 echo "Generated ${SQL_FILE}"

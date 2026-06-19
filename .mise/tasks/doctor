@@ -3,11 +3,6 @@ set -euo pipefail
 #MISE description="Check local setup health and print actionable diagnostics"
 #MISE alias="dr"
 
-ENV_FILE=".env"
-if [[ ! -f "${ENV_FILE}" ]]; then
-  ENV_FILE=".env.example"
-fi
-
 failures=0
 
 ok()   { echo "[OK]   $1"; }
@@ -36,22 +31,32 @@ check_cmd openssl
 
 echo
 echo "== Core files =="
-check_file "${ENV_FILE}"
+check_file ".env"
+check_file "config/services.toml"
 check_file ".docker/dev-stacks/postgresql/compose.yml"
 check_file ".docker/dev-stacks/redis/compose.yml"
 check_file ".docker/dev-stacks/monitoring/compose.yml"
-check_file ".docker/compose/full-stack.yml"
+check_file ".docker/compose/services.generated.yml"
+
+echo
+echo "== Service registry =="
+if python3 .mise/scripts/service_registry.py validate >/dev/null 2>&1; then
+  ok "config/services.toml is valid"
+else
+  err "config/services.toml is invalid; run: mise run services:validate"
+fi
 
 echo
 echo "== Repositories =="
-for repo in api-gateway auth-service user-service; do
-  check_dir "repositories/${repo}/.git"
-  if [[ -f "repositories/${repo}/.env" ]]; then
-    ok "env exists: repositories/${repo}/.env"
+while IFS=$'\t' read -r service_id repo_path env_file; do
+  repo_git_path="${repo_path%/}/.git"
+  check_dir "${repo_git_path}"
+  if [[ -f "${env_file}" ]]; then
+    ok "env exists: ${env_file}"
   else
-    warn "env missing: repositories/${repo}/.env (run: mise run init-env)"
+    warn "env missing: ${env_file} (run: mise run setup:init-env)"
   fi
-done
+done < <(python3 .mise/scripts/service_registry.py service-envs)
 
 echo
 echo "== RSA keys =="
@@ -69,7 +74,7 @@ if docker compose \
   -f ".docker/dev-stacks/postgresql/compose.yml" \
   -f ".docker/dev-stacks/redis/compose.yml" \
   -f ".docker/dev-stacks/monitoring/compose.yml" \
-  -f ".docker/compose/full-stack.yml" \
+  -f ".docker/compose/services.generated.yml" \
   --profile infra --profile services \
   config >/dev/null 2>&1; then
   ok "compose files resolve correctly"

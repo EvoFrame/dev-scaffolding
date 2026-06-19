@@ -2,18 +2,20 @@
 set -e
 #MISE description="Build and start full stack (app + infra) [--ui] [--monitoring]"
 #MISE alias="su"
+#MISE alias="up"
 #USAGE flag "--ui" help="Also start UI companions (pgAdmin, RedisInsight)"
 #USAGE flag "--monitoring" help="Also start monitoring stack (Prometheus, Grafana, Loki)"
 
 COMPOSE_FILES=(-f "$COMPOSE_DB" -f "$COMPOSE_REDIS")
 [ "${usage_monitoring:-false}" = "true" ] && COMPOSE_FILES+=(-f "$COMPOSE_MONITORING")
-COMPOSE_FILES+=(-f "$COMPOSE_FULL")
+COMPOSE_FILES+=(-f "$COMPOSE_SERVICES_GENERATED")
 
 PROFILES=(--profile infra --profile services)
 [ "${usage_ui:-false}" = "true" ] && PROFILES+=(--profile infra-ui)
 [ "${usage_monitoring:-false}" = "true" ] && PROFILES+=(--profile monitoring)
 
 mise run setup:init-env
+mise run services:render
 mise run db:generate-init
 docker compose "${COMPOSE_FILES[@]}" --profile infra --profile services up -d --build --remove-orphans postgres redis auth-service
 mise run setup:pre-register-services
