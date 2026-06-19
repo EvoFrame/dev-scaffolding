@@ -98,12 +98,8 @@ while IFS=$'\t' read -r registry_service_id _repo_path env_file_path; do
     continue
   fi
 
-  service_id="$(strip_wrapping_quotes "$(grep -E '^SERVICE_ID=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
+  service_id="${registry_service_id}"
   service_secret="$(strip_wrapping_quotes "$(grep -E '^SERVICE_SECRET=' "${env_file}" | head -n1 | cut -d= -f2- || true)")"
-
-  if [[ -z "${service_id}" ]]; then
-    continue
-  fi
 
   if [[ -z "${service_secret}" ]]; then
     service_secret="$(openssl rand -hex 32)"
@@ -123,7 +119,7 @@ PY
   secret_hash_sql="$(escape_sql_literal "${secret_hash}")"
   service_uuid="$(cat /proc/sys/kernel/random/uuid)"
 
-  docker exec -e PGPASSWORD="${postgres_password}" -i "${POSTGRES_CONTAINER}" \
+  docker exec -e PGPASSWORD="${postgres_password}" "${POSTGRES_CONTAINER}" \
     psql -v ON_ERROR_STOP=1 -U "${postgres_user}" -d "${auth_db_name}" -c \
     "INSERT INTO service_clients (id, service_id, secret_hash, is_active, created_at, updated_at, deleted_at)
      VALUES ('${service_uuid}'::uuid, '${service_id_sql}', '${secret_hash_sql}', true, NOW(), NOW(), NULL)
