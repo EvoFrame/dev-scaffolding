@@ -13,8 +13,8 @@ PROFILES=(--profile infra --profile services)
 [ "${usage_ui:-false}" = "true" ] && PROFILES+=(--profile infra-ui)
 [ "${usage_monitoring:-false}" = "true" ] && PROFILES+=(--profile monitoring)
 
-mise run init-env
+mise run setup:init-env
 mise run db:generate-init
 docker compose "${COMPOSE_FILES[@]}" --profile infra --profile services up -d --build --remove-orphans postgres redis auth-service
-mise run pre-register-services
+mise run setup:pre-register-services
 docker compose "${COMPOSE_FILES[@]}" "${PROFILES[@]}" up -d --build --remove-orphans

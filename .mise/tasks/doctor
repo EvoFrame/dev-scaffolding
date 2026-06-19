@@ -31,7 +31,6 @@ check_dir() {
 
 echo "== Tooling =="
 check_cmd docker
-check_cmd task
 check_cmd git
 check_cmd openssl
 

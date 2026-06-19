@@ -75,4 +75,4 @@ for prefix in "${repo_prefixes[@]}"; do
   echo "Cloned ${prefix} -> ${target_path} (${repo_branch})"
 done
 
-mise run rotate-keys
+mise run setup:rotate-keys
