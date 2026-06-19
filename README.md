@@ -2,6 +2,10 @@
 
 This repository is a quick local scaffolding for Evoframe microservices.
 
+`config/services.toml` is the single source of truth for scaffolded services
+(repositories, compose service wiring, DB bootstrap entries, and service
+pre-registration).
+
 ## 5-minute quickstart
 
 1. `mise run setup`
@@ -22,11 +26,17 @@ For observability:
 | auth-service | `./repositories/auth-service` | `AUTH_SERVICE_HOST_PORT` (default `8081`) | `8080` | postgres, redis | public + private |
 | user-service | `./repositories/user-service` | `USER_SERVICE_HOST_PORT` (default `8082`) | `8080` | postgres, redis, auth-service | public |
 
+Edit `config/services.toml` to add, remove, or modify services, then run
+`mise run services:render`.
+
 ## Daily commands
 
 - `mise run setup`: bootstrap env files, clone repos, generate keys, and boot infra.
 - `mise run doctor`: run environment diagnostics (docker/tooling/files/compose).
-- `mise run repo:clone`: clone/update repositories from `.env` (or `.env.example`).
+- `mise run services:validate`: validate `config/services.toml`.
+- `mise run services:render`: regenerate service compose file from registry.
+- `mise run services:add -- <id> <repo_url> [repo_branch] [repo_path] [host_port]`: append a new service template and re-render.
+- `mise run repo:clone`: clone/update repositories from `config/services.toml`.
 - `mise run rotate-keys`: regenerate RSA keys and reinject key env vars.
 - `mise run pre-register-services`: register non-auth service clients in auth-service and ensure `SERVICE_SECRET` exists in each service `.env`.
 - `mise run stack:up`: build/start full stack (infra + app services).
@@ -36,7 +46,7 @@ For observability:
 
 ## Reset commands
 
-- `mise run repo:clean`: remove cloned repositories listed in env.
+- `mise run repo:clean`: remove cloned repositories listed in `config/services.toml`.
 - `mise run clean-volumes`: remove compose volumes and generated postgres init SQL.
 - `mise run monitoring:down`: stop monitoring stack containers.
 
